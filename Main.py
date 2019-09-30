@@ -120,7 +120,7 @@ def get_path(maze, startX, startY, endX, endY):
             if enum_node.f < current_node.f:
                 current_node = enum_node
                 current_index = index
-
+                
         node_list.pop(current_index)
         closed_list.append(current_node)
 
