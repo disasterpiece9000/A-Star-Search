@@ -1,7 +1,5 @@
 import random
-from tkinter import *
-from tkinter import messagebox
-from Node import Node
+from tkinter import messagebox, Canvas, Tk
 
 
 def main():
@@ -10,35 +8,37 @@ def main():
     # Create empty 15x15 maze
     maze = [[0 for _ in range(25)] for _ in range(25)]
 
+    # Color all maze cells white
     for x in range(len(maze)):
         for y in range(len(maze)):
             Canvas(master, width=25, height=25, bg="white").grid(row=x, column=y)
 
-    # Create random obstacles
-    for _ in range(7):
-        # Get a random obstacle type
+    # Get a random number of random obstacles
+    num_obstacles = random.randint(50, 75)
+    for _ in range(num_obstacles):
+        
         obstacle_type = random.randint(0, 2)
         obstacleX = random.randint(0, len(maze) - 1)
         obstacleY = random.randint(0, len(maze) - 1)
 
         # Horizontal line
         if obstacle_type == 0:
-            length = random.randint(1, len(maze) - obstacleY)
+            length = int(random.randint(1, len(maze) - obstacleY) / 2)
             for y in range(length):
                 maze[obstacleX][obstacleY + y] = 1
                 Canvas(master, width=25, height=25, bg="black").grid(row=obstacleX, column=obstacleY + y)
 
         # Vertical line
         elif obstacle_type == 1:
-            length = random.randint(1, len(maze) - obstacleX)
+            length = int(random.randint(1, len(maze) - obstacleX) / 2)
             for x in range(length):
                 maze[obstacleX + x][obstacleY] = 1
                 Canvas(master, width=25, height=25, bg="black").grid(row=obstacleX + x, column=obstacleY)
 
         # Box
         elif obstacle_type == 2:
-            width = random.randint(1, len(maze) - obstacleY)
-            height = random.randint(1, len(maze) - obstacleX)
+            width = int(random.randint(1, len(maze) - obstacleY) / 2)
+            height = int(random.randint(1, len(maze) - obstacleX) / 2)
             for x in range(height):
                 for y in range(width):
                     maze[obstacleX + x][obstacleY + y] = 1
@@ -71,10 +71,10 @@ def main():
 
     path = get_path(maze, startX, startY, endX, endY)
 
-    if len(path) == 0:
+    if path is None:
         master.after(250, messagebox.showinfo("Error", "No path was found"))
+        
     else:
-
         old_node = path[0]
         for index, node in enumerate(path):
             new_node = node
@@ -82,7 +82,8 @@ def main():
             master.after(ms=500, func=update_path(master, old_node, new_node))
             old_node = new_node
 
-        master.after(250, messagebox.showinfo("Done!", "A valid path has been found"))
+        master.after(250, messagebox.showinfo("Done!", "A valid path has been found\n"
+                                                       "Number of moves: " + str(len(path) - 1)))
 
     master.mainloop()
 
@@ -92,7 +93,7 @@ def update_path(master, old_node, new_node):
     Canvas(master, width=25, height=25, bg="blue").grid(row=new_node.posX, column=new_node.posY)
 
     robot_canvas = Canvas(master)
-    robot_canvas.config(width=25, height=25)
+    robot_canvas.config(width=25, height=25, bg="white")
     robot_canvas.create_line(0, 25, 12.5, 0, fill="black")
     robot_canvas.create_line(25, 25, 12.5, 0, fill="black")
     robot_canvas.create_line(0, 25, 25, 25, fill="black")
@@ -105,22 +106,22 @@ def get_path(maze, startX, startY, endX, endY):
     start_node = Node(startX, startY, None)
     end_node = Node(endX, endY, None)
 
-    open_list = []  # List of nodes able to travel to
+    node_list = []  # List of nodes able to travel to
     closed_list = []  # List of nodes unable to travel to or already visited
-    open_list.append(start_node)
+    node_list.append(start_node)
 
     # Loop until no Nodes are left
-    while len(open_list) > 0:
+    while len(node_list) > 0:
         current_index = 0
-        current_node = open_list[current_index]
+        current_node = node_list[current_index]
 
-        # Search open_list for the Node with the lowest F
-        for index, enum_node in enumerate(open_list):
+        # Search node_list for the Node with the lowest F
+        for index, enum_node in enumerate(node_list):
             if enum_node.f < current_node.f:
                 current_node = enum_node
                 current_index = index
 
-        open_list.pop(current_index)
+        node_list.pop(current_index)
         closed_list.append(current_node)
 
         # End has been reached
@@ -138,9 +139,13 @@ def get_path(maze, startX, startY, endX, endY):
             node_posY = current_node.posY + new_pos[1]
 
             # Skip if Node is not in range of the maze or if Node is an obstacle
-            if node_posX > (len(maze) - 1) or node_posX < 0 \
+            if node_posX > (len(maze) - 1) \
                     or \
-                    node_posY > (len(maze[len(maze)-1]) - 1) or node_posY < 0\
+                    node_posX < 0 \
+                    or \
+                    node_posY > (len(maze[len(maze)-1]) - 1) \
+                    or \
+                    node_posY < 0\
                     or \
                     maze[node_posX][node_posY] == 1:
                 continue
@@ -163,15 +168,28 @@ def get_path(maze, startX, startY, endX, endY):
 
             # Skip if the neighbor is already in open list and has been visited before
             skip_node = False
-            for open_node in open_list:
+            for open_node in node_list:
                 if neighbor == open_node and neighbor.g > open_node.g:
                     skip_node = True
                     break
             if skip_node:
                 continue
 
-            # Add the neighbor to open_list
-            open_list.append(neighbor)
+            # Add the neighbor to node_list
+            node_list.append(neighbor)
+
+
+class Node:
+    def __init__(self, posX, posY, parent):
+        self.posX = posX
+        self.posY = posY
+        self.parent = parent
+        self.g = 0
+        self.h = 0
+        self.f = 0
+
+    def __eq__(self, other):
+        return other.posX == self.posX and other.posY == self.posY
 
 
 main()

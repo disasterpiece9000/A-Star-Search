@@ -3,8 +3,6 @@ class Node:
         self.posX = posX
         self.posY = posY
         self.parent = parent
-
-        self.is_obstacle = False
         self.g = 0
         self.h = 0
         self.f = 0
